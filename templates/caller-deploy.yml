@@ -11,11 +11,15 @@ jobs:
   deploy:
     uses: nplus-father/workflows/.github/workflows/hugobook-build-deploy.yml@v1
     permissions:
+      # Default set covers deploy-mode=pages-artifact (the default).
+      # If you override to deploy-mode=gh-pages-branch, change to:
+      #   contents: write
+      #   (drop pages/id-token since they're unused for branch deploy)
       contents: read
       pages: write
       id-token: write
     secrets: inherit
-    # Override defaults only when this book needs something different, e.g.:
     # with:
     #   hugo-version: '0.155.0'
     #   deploy-mode: 'gh-pages-branch'
+    #   run-spotless: false
