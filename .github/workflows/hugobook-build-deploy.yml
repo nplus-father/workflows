@@ -1,38 +1,27 @@
 name: 'HugoBook Build and Deploy'
 
-# Reusable workflow shared by all nplus-father/* HugoBook repos.
-# Build runs on the self-hosted runner pool (nplus/hugobook-runner image);
-# deploy runs on GitHub-hosted ubuntu-latest (GitHub Pages environment).
-
 on:
   workflow_call:
     inputs:
       hugo-version:
-        description: 'Hugo extended version. Leave default to use the version baked into the runner image (zero download).'
         type: string
         default: '0.154.5'
       java-version:
-        description: 'Java version for Gradle/Spotless. Leave default to use the runner image JDK.'
         type: string
         default: '25'
       base-url-prefix:
-        description: 'Prefix before /<repo-name>/. Full baseURL will be <prefix>/<repo>/.'
         type: string
         default: 'https://nplus.wiki'
       run-spotless:
-        description: 'Run ./gradlew spotlessCheck before Hugo build.'
         type: boolean
         default: true
       deploy-mode:
-        description: "'pages-artifact' (actions/deploy-pages@v4, recommended) or 'gh-pages-branch' (legacy peaceiris push)."
         type: string
         default: 'pages-artifact'
 
 jobs:
   build:
     runs-on: [self-hosted, linux, hugobook]
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v6
         with:
@@ -101,37 +90,12 @@ jobs:
     if: ${{ inputs.deploy-mode == 'pages-artifact' }}
     needs: build
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    concurrency:
-      group: pages-${{ github.repository }}
-      cancel-in-progress: false
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - run: echo "deploy stub — full env/concurrency removed for bisect"
 
   deploy-gh-pages-branch:
     if: ${{ inputs.deploy-mode == 'gh-pages-branch' }}
     needs: build
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    concurrency:
-      group: pages-${{ github.repository }}
-      cancel-in-progress: false
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: site-public
-          path: ./public
-      - uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: ./public
-          keep_files: false
+      - run: echo "gh-pages-branch stub"
