@@ -74,13 +74,13 @@ jobs:
 
       - name: Upload Pages artifact
         if: ${{ inputs.deploy-mode == 'pages-artifact' }}
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site/public
 
       - name: Upload site artifact (legacy path)
         if: ${{ inputs.deploy-mode == 'gh-pages-branch' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: site-public
           path: site/public
@@ -96,14 +96,14 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
   deploy-gh-pages-branch:
     if: ${{ inputs.deploy-mode == 'gh-pages-branch' }}
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: site-public
           path: ./public
