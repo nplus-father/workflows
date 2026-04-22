@@ -90,12 +90,34 @@ jobs:
     if: ${{ inputs.deploy-mode == 'pages-artifact' }}
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages-${{ github.repository }}
+      cancel-in-progress: false
     steps:
-      - run: echo "deploy stub — full env/concurrency removed for bisect"
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
   deploy-gh-pages-branch:
     if: ${{ inputs.deploy-mode == 'gh-pages-branch' }}
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: pages-${{ github.repository }}
+      cancel-in-progress: false
     steps:
-      - run: echo "gh-pages-branch stub"
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-public
+          path: ./public
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./public
+          keep_files: false
