@@ -1,0 +1,47 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "Asia/Taipei",
+  "schedule": ["on the first day of the month"],
+  "dependencyDashboard": true,
+  "automerge": true,
+  "automergeType": "branch",
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
+  "packageRules": [
+    {
+      "description": "Group ALL updates into a single PR and automerge",
+      "matchUpdateTypes": ["major", "minor", "patch", "digest", "pin"],
+      "groupName": "all dependencies",
+      "automerge": true,
+      "automergeType": "branch"
+    },
+    {
+      "description": "nplus-book-core indirect updates",
+      "matchPackageNames": ["github.com/Andrewnplus/nplus-book-core"],
+      "matchDepTypes": ["indirect"],
+      "groupName": "all dependencies",
+      "enabled": true
+    },
+    {
+      "description": "book convention plugin from GitHub Packages",
+      "matchPackageNames": ["com.andrewnplus.book"],
+      "registryUrls": ["https://maven.pkg.github.com/nplus-father/book-gradle-conventions"]
+    }
+  ],
+  "gomod": {
+    "enabled": true,
+    "postUpdateOptions": ["gomodTidy"]
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Hugo version in GitHub Actions workflows",
+      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
+      "matchStrings": ["hugo-version:\\s*['\"]?(?<currentValue>[0-9.]+)['\"]?"],
+      "depNameTemplate": "gohugoio/hugo",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    }
+  ]
+}
