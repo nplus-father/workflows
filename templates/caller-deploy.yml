@@ -1,0 +1,21 @@
+# Drop this file into a HugoBook repo as .github/workflows/deploy.yml.
+# It replaces the whole 60-line per-repo deploy pipeline.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    uses: nplus-father/workflows/.github/workflows/hugobook-build-deploy.yml@v1
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    secrets: inherit
+    # Override defaults only when this book needs something different, e.g.:
+    # with:
+    #   hugo-version: '0.155.0'
+    #   deploy-mode: 'gh-pages-branch'

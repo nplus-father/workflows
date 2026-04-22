@@ -1,0 +1,17 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Local act (https://github.com/nektos/act) testing artefacts
+/act/
+.actrc
+.secrets
+
+# Misc
+*.log
