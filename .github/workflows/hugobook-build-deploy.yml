@@ -1,4 +1,4 @@
-name: HugoBook Build & Deploy
+name: 'HugoBook Build and Deploy'
 
 # Reusable workflow shared by all nplus-father/* HugoBook repos.
 # Build runs on the self-hosted runner pool (nplus/hugobook-runner image);
