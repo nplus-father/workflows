@@ -93,9 +93,6 @@ jobs:
     permissions:
       pages: write
       id-token: write
-    concurrency:
-      group: pages-${{ github.repository }}
-      cancel-in-progress: false
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
@@ -107,9 +104,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    concurrency:
-      group: pages-${{ github.repository }}
-      cancel-in-progress: false
     steps:
       - uses: actions/download-artifact@v4
         with:
