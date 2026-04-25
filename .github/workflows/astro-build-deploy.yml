@@ -15,9 +15,6 @@ on:
       run-format-check:
         type: boolean
         default: true
-    secrets:
-      # No secrets required by default; declare here if a caller needs to
-      # forward `secrets: inherit`.
 
 permissions:
   contents: read
