@@ -1,18 +1,21 @@
 # nplus-father/workflows
 
-Centralised GitHub Actions reusable workflows for all HugoBook repos under the
-`nplus-father` org. Changing a build step here propagates to every book repo
-on their next push — no need to touch 800 repos.
+Centralised GitHub Actions reusable workflows for all sites under the
+`nplus-father` and `Andrewnplus` orgs. Changing a build step here propagates
+to every consumer repo on their next push — no need to touch each repo.
 
 ## What's inside
 
 | Path | Purpose |
 |---|---|
-| `.github/workflows/hugobook-build-deploy.yml` | Build (self-hosted) + Deploy (GitHub-hosted Pages). The main pipeline. |
-| `.github/workflows/ci-check.yml` | Dummy CI for branch protection. |
-| `templates/caller-deploy.yml` | Drop-in `deploy.yml` for each book repo (~15 lines). |
-| `templates/caller-ci-check.yml` | Drop-in `ci-check.yml` for each book repo. |
-| `docs/MIGRATION.md` | How to migrate existing book repos + troubleshooting. |
+| `.github/workflows/hugobook-build-deploy.yml` | Hugo build (self-hosted) + Deploy. Used by ~860 book repos. |
+| `.github/workflows/astro-build-deploy.yml` | Astro build (GitHub-hosted) + Deploy via Pages-artifact. |
+| `.github/workflows/astro-ci-check.yml` | Astro PR check (lint + format + build). |
+| `.github/workflows/ci-check.yml` | Dummy CI for HugoBook branch protection. |
+| `templates/caller-deploy.yml` | Drop-in `deploy.yml` for HugoBook repos. |
+| `templates/caller-ci-check.yml` | Drop-in `ci-check.yml` for HugoBook repos. |
+| `templates/astro/` | Drop-in caller workflows + dev configs for Astro repos. |
+| `docs/MIGRATION.md` | Migration guide + troubleshooting. |
 
 ## Versioning
 
@@ -20,42 +23,80 @@ Callers pin with a git tag:
 
 ```yaml
 uses: nplus-father/workflows/.github/workflows/hugobook-build-deploy.yml@v1
+uses: nplus-father/workflows/.github/workflows/astro-build-deploy.yml@v1
 ```
 
-- `v1` = stable major version. Bug fixes and backward-compatible changes roll out here.
-- `v2`, `v3` = breaking changes. Existing callers keep working until they opt in.
-- `@main` = bleeding edge. Only use in the pilot repo while iterating.
+- `v1` = stable major. Backward-compatible additions and bug fixes land here.
+- `v2`, `v3` = breaking changes. Old callers keep working until they opt in.
+- `@main` = bleeding edge. Only use in pilot repos while iterating.
 
 After merging any PR here:
+
 ```bash
 git tag -fa v1 -m "v1 rolling tag"
 git push -f origin v1
 ```
+
 (Force-push the rolling major tag. Callers pinned to `@v1` pick up on next run.)
 
-## Inputs (hugobook-build-deploy.yml)
+## Inputs
+
+### `hugobook-build-deploy.yml` (Hugo books)
 
 | Input | Default | When to override |
 |---|---|---|
-| `hugo-version` | `0.154.5` | Book needs a newer/older Hugo (will download at build time). |
+| `hugo-version` | `0.154.5` | Book needs a newer/older Hugo. |
 | `java-version` | `25` | Book's Gradle needs a specific JDK. |
 | `base-url-prefix` | `https://nplus.wiki` | Publishing to a different domain. |
 | `run-spotless` | `true` | Disable while fixing formatting. |
-| `deploy-mode` | `pages-artifact` | Set `gh-pages-branch` if the repo's Pages source is still the `gh-pages` branch. |
+| `deploy-mode` | `pages-artifact` | Set `gh-pages-branch` for legacy repos. |
 
-## Deploy modes
+### `astro-build-deploy.yml` (Astro sites)
 
-- **`pages-artifact`** (default, recommended): uses `actions/deploy-pages@v4`. Requires the book repo's **Settings → Pages → Source = "GitHub Actions"**. Upgraded path for every book repo.
-- **`gh-pages-branch`** (legacy): pushes built site to `gh-pages` branch via `peaceiris/actions-gh-pages`. Matches the pre-migration behaviour. Use during transition if Pages source hasn't been flipped yet.
+| Input | Default | When to override |
+|---|---|---|
+| `node-version` | `22` | Newer Node release. |
+| `run-lint` | `true` | Disable while fixing lint errors. |
+| `run-format-check` | `true` | Disable while fixing format errors. |
+
+### `astro-ci-check.yml` (Astro PR check)
+
+| Input | Default | When to override |
+|---|---|---|
+| `node-version` | `22` | Newer Node release. |
+
+## Deploy modes (HugoBook)
+
+- **`pages-artifact`** (default, recommended): uses `actions/deploy-pages@v4`. Requires the repo's **Settings → Pages → Source = "GitHub Actions"**.
+- **`gh-pages-branch`** (legacy): pushes built site to `gh-pages` branch via `peaceiris/actions-gh-pages`. Use during transition.
+
+## Astro setup
+
+Astro repos use Pages-artifact only. To onboard a new Astro repo:
+
+1. Copy template files from `templates/astro/` into the repo:
+   ```
+   .github/workflows/deploy.yml      ← templates/astro/caller-deploy.yml
+   .github/workflows/ci-check.yml    ← templates/astro/caller-ci-check.yml
+   .prettierrc.json
+   .prettierignore
+   .gitignore                         (merge with existing if any)
+   eslint.config.mjs
+   tsconfig.json                      (merge or replace)
+   .github/renovate.json              ← templates/astro/renovate.json
+   ```
+2. In repo Settings → Pages → Source: pick **"GitHub Actions"**.
+3. In repo Settings → Actions → General → Access: set **"Accessible from repositories owned by the 'nplus-father' organization"** (so the reusable workflow can be invoked).
+4. Add a `public/CNAME` if using a custom domain.
 
 ## Requirements on caller repos
 
-- Must be under `nplus-father` org (reusable workflow access is scoped there).
-- Must have structure: `site/` as Hugo root, `gradlew` wrapper at root, `site/go.sum` for Hugo modules (optional).
-- Must grant the reusable workflow access: Repo Settings → Actions → General → Access → **Accessible from repositories owned by the 'nplus-father' organization**.
+- Must be under `nplus-father` or have the workflow access granted (Settings → Actions → General → Access).
+- HugoBook structure: `site/` as Hugo root, `gradlew` wrapper at root, optional `site/go.sum`.
+- Astro structure: `package.json` at root with `lint`, `format:check`, `build` scripts; output in `dist/`.
 
 ## Self-hosted runner
 
-The build job runs on runners labelled `self-hosted, linux, hugobook`. Runners
-are in `~/gh-runner/` on the ops host. See `docs/MIGRATION.md` for day-to-day
-operations.
+The HugoBook build job runs on runners labelled `self-hosted, linux, hugobook`.
+The Astro build job runs on `ubuntu-latest` (GitHub-hosted; no runner needed).
+See `docs/MIGRATION.md` for runner ops.

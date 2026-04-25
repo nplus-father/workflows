@@ -1,0 +1,72 @@
+name: "Astro Build and Deploy"
+
+# Reusable: build an Astro site and publish via GitHub Pages (artifact mode).
+# Used by all nplus-father/Andrewnplus Astro repos.
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        type: string
+        default: "22"
+      run-lint:
+        type: boolean
+        default: true
+      run-format-check:
+        type: boolean
+        default: true
+    secrets:
+      # No secrets required by default; declare here if a caller needs to
+      # forward `secrets: inherit`.
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      HUSKY: 0 # skip git hook install in CI
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        if: ${{ inputs.run-lint }}
+        run: npm run lint
+
+      - name: Format check
+        if: ${{ inputs.run-format-check }}
+        run: npm run format:check
+
+      - name: Build
+        run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

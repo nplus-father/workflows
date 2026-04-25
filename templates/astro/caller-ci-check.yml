@@ -1,0 +1,12 @@
+# Drop this file into an Astro repo as .github/workflows/ci-check.yml.
+
+name: CI Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    uses: nplus-father/workflows/.github/workflows/astro-ci-check.yml@v1
+    secrets: inherit

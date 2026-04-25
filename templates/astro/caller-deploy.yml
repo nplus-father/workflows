@@ -1,0 +1,25 @@
+# Drop this file into an Astro repo as .github/workflows/deploy.yml.
+# Replaces the whole inline build+deploy pipeline.
+#
+# Prereq: GitHub Pages settings → Source = "GitHub Actions"
+#
+# Override defaults by uncommenting the `with:` block below.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    uses: nplus-father/workflows/.github/workflows/astro-build-deploy.yml@v1
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    secrets: inherit
+    # with:
+    #   node-version: '22'
+    #   run-lint: true
+    #   run-format-check: true
