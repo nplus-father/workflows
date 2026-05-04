@@ -1,0 +1,79 @@
+name: "Astro Portal Build and Deploy"
+
+# Reusable: build + deploy for the nplus.wiki portal site
+# (nplus-father/nplus-father.github.io). Differs from astro-build-deploy.yml
+# by running tests and fetching repo metadata from GitHub before build.
+#
+# Required secret (passed via `secrets:` from caller):
+#   PORTAL_GH_TOKEN — PAT with `repo` scope to read private repo metadata.
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        type: string
+        default: "22"
+      run-lint:
+        type: boolean
+        default: true
+      run-test:
+        type: boolean
+        default: true
+    secrets:
+      PORTAL_GH_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        if: ${{ inputs.run-lint }}
+        run: npm run lint
+
+      - name: Test
+        if: ${{ inputs.run-test }}
+        run: npm run test
+
+      - name: Fetch portal repo data from GitHub
+        env:
+          GH_TOKEN: ${{ secrets.PORTAL_GH_TOKEN }}
+        run: npm run fetch-repos
+
+      - name: Build
+        run: npm run build
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
