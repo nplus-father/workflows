@@ -39,6 +39,47 @@ git push -f origin v1
 
 (Force-push the rolling major tag. Callers pinned to `@v1` pick up on next run.)
 
+### Release discipline (avoid breaking every consumer at once)
+
+Because every Astro / HugoBook caller pins `@v1`, a bad commit on `v1` simultaneously
+breaks **all** consumers (~860 book repos + 3 Astro sites). To keep this powerful
+but not dangerous:
+
+1. **Test on `main` before moving `v1`.** Push your change, then dispatch the
+   relevant workflow on a low-stakes consumer with `@main`:
+   ```bash
+   # Pick one Astro pilot repo
+   gh workflow run deploy.yml --repo nplus-father/<sandbox-repo> \
+     --ref main --raw-field workflow_ref=main
+   gh run watch --repo nplus-father/<sandbox-repo>
+   ```
+   Only after that succeeds → move `v1`.
+
+2. **Move `v1` only to commits that have actually run green** on a real consumer.
+   Don't tag-and-pray.
+
+3. **Rollback procedure** if you discover `v1` is broken in production:
+   ```bash
+   # Find the last known-good commit
+   git log v1 --oneline -10
+
+   # Reset v1 to it
+   git tag -fa v1 <good-sha> -m "rollback v1 to <good-sha>"
+   git push -f origin v1
+   ```
+   Daily-cron consumers will pick up the rollback within 24h; push consumers
+   need to push (or workflow_dispatch) once.
+
+4. **Breaking changes go to `v2`**, never to `v1`. Add a new file
+   (e.g. `astro-build-deploy-v2.yml`) or bump in-place but with a new major tag,
+   and migrate consumers one at a time.
+
+5. **List of `@v1` consumers** (alert these if you have to roll back):
+   - `nplus-father/nplus-father.github.io` (portal, `astro-portal-build-deploy`)
+   - `Andrewnplus/andrewnplus.github.io` (`astro-build-deploy`)
+   - `Andrewnplus/outside-the-walls` (`astro-build-deploy`)
+   - all `nplus-father/<book>` repos with HugoBook (`hugobook-build-deploy`)
+
 ## Inputs
 
 ### `hugobook-build-deploy.yml` (Hugo books)
