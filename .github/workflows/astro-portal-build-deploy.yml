@@ -58,6 +58,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PORTAL_GH_TOKEN }}
         run: npm run fetch-repos
+      - name: Fetch response-articles manifest
+        # Pulls https://andrewnplus.github.io/responses.json so book cards
+        # can show "已回應" badges. Failure is non-fatal — the script
+        # writes an empty stub and the build continues.
+        run: npm run fetch-responses
 
       - name: Build
         run: npm run build
