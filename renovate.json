@@ -18,7 +18,7 @@
     },
     {
       "description": "nplus-book-core indirect updates",
-      "matchPackageNames": ["github.com/Andrewnplus/nplus-book-core"],
+      "matchPackageNames": ["github.com/nplus-father/nplus-book-core"],
       "matchDepTypes": ["indirect"],
       "groupName": "all dependencies",
       "enabled": true
@@ -27,6 +27,15 @@
       "description": "book convention plugin from GitHub Packages",
       "matchPackageNames": ["com.andrewnplus.book"],
       "registryUrls": ["https://maven.pkg.github.com/nplus-father/book-gradle-conventions"]
+    }
+  ],
+  "hostRules": [
+    {
+      "description": "Auth for book-gradle-conventions on GitHub Packages (requires PACKAGES_TOKEN secret with read:packages in Mend)",
+      "matchHost": "maven.pkg.github.com",
+      "hostType": "maven",
+      "username": "nplus-father",
+      "password": "{{ secrets.PACKAGES_TOKEN }}"
     }
   ],
   "gomod": {
