@@ -5,6 +5,7 @@
   "dependencyDashboard": true,
   "automerge": true,
   "automergeType": "branch",
+  "ignoreTests": true,
   "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
   "packageRules": [
