@@ -31,7 +31,7 @@ jobs:
     env:
       HUSKY: 0 # skip git hook install in CI
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
