@@ -29,15 +29,6 @@
       "registryUrls": ["https://maven.pkg.github.com/nplus-father/book-gradle-conventions"]
     }
   ],
-  "hostRules": [
-    {
-      "description": "Auth for book-gradle-conventions on GitHub Packages (requires PACKAGES_TOKEN secret with read:packages in Mend)",
-      "matchHost": "maven.pkg.github.com",
-      "hostType": "maven",
-      "username": "nplus-father",
-      "password": "{{ secrets.PACKAGES_TOKEN }}"
-    }
-  ],
   "gomod": {
     "enabled": true,
     "postUpdateOptions": ["gomodTidy"]
