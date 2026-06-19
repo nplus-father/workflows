@@ -5,8 +5,7 @@
   "schedule": ["on the first day of the month"],
   "dependencyDashboard": true,
   "automerge": true,
-  "automergeType": "branch",
-  "ignoreTests": true,
+  "automergeType": "pr",
   "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
   "packageRules": [
@@ -15,7 +14,7 @@
       "matchUpdateTypes": ["major", "minor", "patch", "digest", "pin"],
       "groupName": "all dependencies",
       "automerge": true,
-      "automergeType": "branch"
+      "automergeType": "pr"
     },
     {
       "description": "nplus-book-core indirect updates",
