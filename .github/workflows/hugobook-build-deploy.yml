@@ -5,7 +5,7 @@ on:
     inputs:
       hugo-version:
         type: string
-        default: '0.154.5'
+        default: '0.163.3'
       java-version:
         type: string
         default: '25'
@@ -57,8 +57,7 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
         run: ./gradlew spotlessCheck --no-daemon
 
-      - name: Setup Hugo (override runner image default)
-        if: ${{ inputs.hugo-version != '0.154.5' }}
+      - name: Setup Hugo
         uses: peaceiris/actions-hugo@v3
         with:
           hugo-version: ${{ inputs.hugo-version }}
