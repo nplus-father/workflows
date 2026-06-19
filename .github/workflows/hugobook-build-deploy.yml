@@ -18,6 +18,11 @@ on:
       deploy-mode:
         type: string
         default: 'pages-artifact'
+      deploy:
+        # Set false for a build-only gate (e.g. Renovate PR check): runs the
+        # full build but skips artifact upload and the deploy jobs.
+        type: boolean
+        default: true
 
 jobs:
   build:
@@ -63,6 +68,18 @@ jobs:
           hugo-version: ${{ inputs.hugo-version }}
           extended: true
 
+      - name: Verify Hugo version
+        # Fail fast if a stale self-hosted-runner hugo shadows the one just
+        # installed (the recurring setup-hugo flake). Turns a silent wrong-version
+        # build into an immediate, obvious failure — rerun lands on a clean runner.
+        run: |
+          installed=$(hugo version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          echo "Hugo on PATH: $installed (expected ${{ inputs.hugo-version }})"
+          if [ "$installed" != "${{ inputs.hugo-version }}" ]; then
+            echo "::error::Hugo version mismatch: got '$installed', expected '${{ inputs.hugo-version }}'. Likely a stale hugo on this self-hosted runner's PATH — rerun this job."
+            exit 1
+          fi
+
       - name: Build site
         working-directory: site
         run: |
@@ -71,13 +88,13 @@ jobs:
             --cacheDir /tmp/hugo_cache
 
       - name: Upload Pages artifact
-        if: ${{ inputs.deploy-mode == 'pages-artifact' }}
+        if: ${{ inputs.deploy && inputs.deploy-mode == 'pages-artifact' }}
         uses: actions/upload-pages-artifact@v5
         with:
           path: site/public
 
       - name: Upload site artifact (legacy path)
-        if: ${{ inputs.deploy-mode == 'gh-pages-branch' }}
+        if: ${{ inputs.deploy && inputs.deploy-mode == 'gh-pages-branch' }}
         uses: actions/upload-artifact@v7
         with:
           name: site-public
@@ -85,7 +102,7 @@ jobs:
           retention-days: 1
 
   deploy-pages:
-    if: ${{ inputs.deploy-mode == 'pages-artifact' }}
+    if: ${{ inputs.deploy && inputs.deploy-mode == 'pages-artifact' }}
     needs: build
     runs-on: ubuntu-latest
     environment:
@@ -97,7 +114,7 @@ jobs:
         uses: actions/deploy-pages@v5
 
   deploy-gh-pages-branch:
-    if: ${{ inputs.deploy-mode == 'gh-pages-branch' }}
+    if: ${{ inputs.deploy && inputs.deploy-mode == 'gh-pages-branch' }}
     needs: build
     runs-on: ubuntu-latest
     steps:
