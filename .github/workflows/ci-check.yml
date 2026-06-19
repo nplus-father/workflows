@@ -1,14 +1,20 @@
 name: CI Check
 
-# Placeholder CI check to satisfy branch-protection "require status check" rules.
-# Replace with real linting/testing later if needed.
+# Pre-merge gate for Renovate (and any) PRs: runs the full HugoBook build
+# (Spotless + Hugo) WITHOUT deploying, so a broken dependency bump fails the
+# PR check instead of landing on main. Build-only is achieved by delegating to
+# hugobook-build-deploy.yml with deploy=false. Uses the automatic GITHUB_TOKEN
+# (the gradle plugin resolves from GitHub Packages via GITHUB_TOKEN), so no
+# secret passing is required from callers.
 
 on:
   workflow_call:
 
 jobs:
-  noop:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Acknowledge
-        run: echo "Placeholder CI check passed to satisfy Branch Protection."
+  build:
+    uses: nplus-father/workflows/.github/workflows/hugobook-build-deploy.yml@v1
+    permissions:
+      contents: read
+      packages: read
+    with:
+      deploy: false
