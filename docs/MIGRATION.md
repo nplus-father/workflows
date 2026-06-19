@@ -207,7 +207,7 @@ The book's Gradle wrapper is too old for Java 25. Two fixes:
 
 ### `peaceiris/actions-hugo` downloads Hugo every build even though runner has it
 
-You set `hugo-version` to something other than `0.154.5` in the caller.
+You set `hugo-version` to something other than `0.163.3` in the caller.
 Either remove the override (use default) or bump the runner image's
 `HUGO_VERSION` ARG in `~/gh-runner/Dockerfile.runner` and rebuild.
 
