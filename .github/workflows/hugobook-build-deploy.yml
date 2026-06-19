@@ -28,8 +28,7 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Setup Java (override runner image default)
-        if: ${{ inputs.java-version != '25' }}
+      - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
