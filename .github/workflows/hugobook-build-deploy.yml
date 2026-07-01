@@ -40,7 +40,7 @@ jobs:
           java-version: ${{ inputs.java-version }}
 
       - name: Cache Gradle
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
@@ -49,7 +49,7 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle-
 
       - name: Cache Hugo modules
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: /tmp/hugo_cache
           key: ${{ runner.os }}-hugo-${{ hashFiles('**/go.sum') }}
