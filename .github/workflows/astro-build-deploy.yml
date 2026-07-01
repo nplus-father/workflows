@@ -20,7 +20,6 @@ permissions:
   contents: read
   pages: write
   id-token: write
-  packages: read # 讀取 @nplus-father/notes-core（GitHub Packages）
 
 concurrency:
   group: pages

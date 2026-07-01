@@ -9,10 +9,6 @@ on:
         type: string
         default: "22"
 
-permissions:
-  contents: read
-  packages: read # 讀取 @nplus-father/notes-core（GitHub Packages）
-
 jobs:
   check:
     runs-on: ubuntu-latest
