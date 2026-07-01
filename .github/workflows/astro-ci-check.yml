@@ -9,6 +9,10 @@ on:
         type: string
         default: "22"
 
+permissions:
+  contents: read
+  packages: read # 讀取 @nplus-father/notes-core（GitHub Packages）
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -21,8 +25,12 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           cache: npm
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@nplus-father"
 
       - run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: npm run lint
       - run: npm run format:check
       - run: npm run build

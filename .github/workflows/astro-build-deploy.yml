@@ -20,6 +20,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  packages: read # 讀取 @nplus-father/notes-core（GitHub Packages）
 
 concurrency:
   group: pages
@@ -37,9 +38,13 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
           cache: npm
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@nplus-father"
 
       - name: Install dependencies
         run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Lint
         if: ${{ inputs.run-lint }}
