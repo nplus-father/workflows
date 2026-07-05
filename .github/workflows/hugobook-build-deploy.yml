@@ -30,8 +30,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          submodules: recursive
+          # fetch-depth: 0 is required: site/hugo.toml sets enableGitInfo=true,
+          # so Hugo derives each page's lastmod from the full git log. A shallow
+          # clone would collapse every page's lastmod to the latest commit date.
           fetch-depth: 0
+          # ...but do a blobless partial clone. GitInfo only needs the commit +
+          # tree graph (to find which commit last touched each file), NOT the
+          # contents of every historical blob. filter=blob:none fetches those
+          # blobs on demand, cutting the clone transfer for these image-heavy
+          # book repos (~68 MB .git) while keeping lastmod correct.
+          filter: blob:none
+          # submodules dropped: no repo in the fleet has a .gitmodules (the
+          # HugoBook theme is a Hugo module via go.mod, not a git submodule),
+          # so submodules: recursive was a no-op.
 
       - name: Setup Java
         uses: actions/setup-java@v5
