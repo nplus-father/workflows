@@ -39,21 +39,16 @@ jobs:
           distribution: temurin
           java-version: ${{ inputs.java-version }}
 
-      - name: Cache Gradle
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-gradle-
-
-      - name: Cache Hugo modules
-        uses: actions/cache@v5
-        with:
-          path: /tmp/hugo_cache
-          key: ${{ runner.os }}-hugo-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-hugo-
+      # No actions/cache here. These jobs run on our self-hosted [hugobook]
+      # runners, where the dependency caches are already persistent AND shared
+      # across all 10 runners via pinned paths in each runner's .env:
+      #   GRADLE_USER_HOME=/home/andrew/.gradle   (Gradle deps + wrapper)
+      #   GOMODCACHE=/home/andrew/go/pkg/mod      (Hugo book-theme modules)
+      #   HUGO_CACHEDIR=/home/andrew/.cache/hugo  (Hugo file cache)
+      # actions/cache would tar those multi-GB dirs, upload them to GitHub's
+      # cloud, and download them back every run — per repo — which is pure
+      # waste on disk-persistent runners and risks concurrent-write corruption
+      # of the shared ~/.gradle. On-disk sharing already covers every repo.
 
       - name: Spotless check
         if: ${{ inputs.run-spotless }}
@@ -84,8 +79,10 @@ jobs:
         working-directory: site
         run: |
           hugo --minify --gc \
-            --baseURL "${{ inputs.base-url-prefix }}/${{ github.event.repository.name }}/" \
-            --cacheDir /tmp/hugo_cache
+            --baseURL "${{ inputs.base-url-prefix }}/${{ github.event.repository.name }}/"
+          # cacheDir intentionally omitted: Hugo uses $HUGO_CACHEDIR
+          # (/home/andrew/.cache/hugo), a persistent cache shared across runners,
+          # instead of a per-job /tmp dir that was thrown away every run.
 
       - name: Upload Pages artifact
         if: ${{ inputs.deploy && inputs.deploy-mode == 'pages-artifact' }}
