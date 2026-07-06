@@ -6,6 +6,7 @@
   "dependencyDashboard": true,
   "automerge": true,
   "automergeType": "pr",
+  "platformAutomerge": true,
   "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
   "packageRules": [
