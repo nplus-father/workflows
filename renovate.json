@@ -7,6 +7,9 @@
   "automerge": true,
   "automergeType": "pr",
   "platformAutomerge": true,
+  "separateMajorMinor": false,
+  "separateMultipleMajor": false,
+  "rebaseWhen": "conflicted",
   "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
   "packageRules": [
@@ -16,6 +19,12 @@
       "groupName": "all dependencies",
       "automerge": true,
       "automergeType": "pr"
+    },
+    {
+      "description": "Skip typescript major (TS7 native compiler restructures deps and breaks npm lockfile sync); upgrade manually if ever needed",
+      "matchPackageNames": ["typescript"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     },
     {
       "description": "nplus-book-core indirect updates",
