@@ -14,9 +14,9 @@
   "prConcurrentLimit": 0,
   "packageRules": [
     {
-      "description": "Group ALL updates into a single PR and automerge",
-      "matchUpdateTypes": ["major", "minor", "patch", "digest", "pin"],
-      "groupName": "all dependencies",
+      "description": "Major updates only: group into one PR, run CI Check, automerge on green",
+      "matchUpdateTypes": ["major"],
+      "groupName": "major dependencies",
       "automerge": true,
       "automergeType": "pr"
     },
@@ -37,6 +37,11 @@
       "description": "book convention plugin from GitHub Packages",
       "matchPackageNames": ["com.andrewnplus.book"],
       "registryUrls": ["https://maven.pkg.github.com/nplus-father/book-gradle-conventions"]
+    },
+    {
+      "description": "Skip patch/minor/digest/pin entirely: no PR, no CI (major-only policy, saves Actions minutes). Placed last so it overrides package-specific re-enables above.",
+      "matchUpdateTypes": ["minor", "patch", "digest", "pin"],
+      "enabled": false
     }
   ],
   "hostRules": [
