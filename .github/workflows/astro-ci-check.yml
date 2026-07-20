@@ -10,10 +10,12 @@ on:
     inputs:
       node-version:
         type: string
-        default: "22"
+        default: "24"
       runner-labels:
-        # JSON array of runner labels. Defaults to our self-hosted pool; the
-        # image already ships Node 22 (see gh-runner/Dockerfile.runner).
+        # JSON array of runner labels. Defaults to our self-hosted pool
+        # (host-level systemd runners on andrew-PC, ~/actions-runner-1..10).
+        # Node comes from setup-node above, NOT from the host PATH — the
+        # runners' .path has no nvm, so bare `node` there is /usr/bin/node 18.
         # Callers that CANNOT use it must override with '["ubuntu-latest"]':
         #   - public repos (fork PRs would run arbitrary code on our host)
         #   - repos owned by Andrewnplus (org runners only serve org repos)
@@ -31,7 +33,6 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ inputs.node-version }}
-          cache: npm
 
       - run: npm ci
       - name: Dependency drift (note stations only)
