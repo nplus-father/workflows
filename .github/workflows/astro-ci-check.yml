@@ -1,6 +1,9 @@
 name: "Astro CI Check"
 
 # Reusable: full lint + format + build verification on PRs.
+# Note stations additionally define `deps:check` (notes-core's notes-doctor), which
+# fails the run when their pinned dependency versions drift from notes-core's
+# versions.json. Sites without that script just skip the step.
 
 on:
   workflow_call:
@@ -23,6 +26,8 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - name: Dependency drift (note stations only)
+        run: npm run --if-present deps:check
       - run: npm run lint
       - run: npm run format:check
       - run: npm run build
