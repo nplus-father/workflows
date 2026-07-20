@@ -15,6 +15,17 @@ on:
       run-format-check:
         type: boolean
         default: true
+      runner-labels:
+        # JSON array of runner labels for the build job. Defaults to our
+        # self-hosted pool; the image already ships Node 22 (see
+        # gh-runner/Dockerfile.runner). Callers that CANNOT use it must
+        # override with '["ubuntu-latest"]':
+        #   - public repos (fork PRs would run arbitrary code on our host)
+        #   - repos owned by Andrewnplus (org runners only serve org repos)
+        # The deploy job always stays GitHub-hosted (actions/deploy-pages
+        # needs the github-pages environment's OIDC token).
+        type: string
+        default: '["self-hosted","linux","hugobook"]'
 
 permissions:
   contents: read
@@ -27,7 +38,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs['runner-labels']) }}
     env:
       HUSKY: 0 # skip git hook install in CI
     steps:

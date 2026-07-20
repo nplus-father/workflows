@@ -10,3 +10,7 @@ jobs:
   check:
     uses: nplus-father/workflows/.github/workflows/astro-ci-check.yml@v1
     secrets: inherit
+    # Builds run on the self-hosted [hugobook] pool by default. Uncomment for
+    # public repos or repos owned by Andrewnplus — neither can use org runners.
+    # with:
+    #   runner-labels: '["ubuntu-latest"]'

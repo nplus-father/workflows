@@ -23,3 +23,6 @@ jobs:
     #   node-version: '22'
     #   run-lint: true
     #   run-format-check: true
+    #   # Build runs on the self-hosted [hugobook] pool by default. Set this for
+    #   # public repos or repos owned by Andrewnplus — neither can use org runners.
+    #   runner-labels: '["ubuntu-latest"]'

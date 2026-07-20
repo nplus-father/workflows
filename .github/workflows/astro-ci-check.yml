@@ -11,10 +11,18 @@ on:
       node-version:
         type: string
         default: "22"
+      runner-labels:
+        # JSON array of runner labels. Defaults to our self-hosted pool; the
+        # image already ships Node 22 (see gh-runner/Dockerfile.runner).
+        # Callers that CANNOT use it must override with '["ubuntu-latest"]':
+        #   - public repos (fork PRs would run arbitrary code on our host)
+        #   - repos owned by Andrewnplus (org runners only serve org repos)
+        type: string
+        default: '["self-hosted","linux","hugobook"]'
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs['runner-labels']) }}
     env:
       HUSKY: 0
     steps:

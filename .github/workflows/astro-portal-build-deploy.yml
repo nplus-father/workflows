@@ -19,6 +19,12 @@ on:
       run-test:
         type: boolean
         default: true
+      runner-labels:
+        # JSON array of runner labels for the build job. Defaults to our
+        # self-hosted pool (the portal repo is private and org-owned, so it
+        # qualifies). Deploy stays GitHub-hosted for the Pages OIDC token.
+        type: string
+        default: '["self-hosted","linux","hugobook"]'
     secrets:
       PORTAL_GH_TOKEN:
         required: true
@@ -34,7 +40,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs['runner-labels']) }}
     steps:
       - uses: actions/checkout@v7
 
