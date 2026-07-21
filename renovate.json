@@ -61,7 +61,7 @@
     {
       "customType": "regex",
       "description": "Hugo version in GitHub Actions workflows",
-      "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"],
+      "managerFilePatterns": ["/^\\.github/workflows/.*\\.ya?ml$/"],
       "matchStrings": ["hugo-version:\\s*['\"]?(?<currentValue>[0-9.]+)['\"]?"],
       "depNameTemplate": "gohugoio/hugo",
       "datasourceTemplate": "github-releases",
