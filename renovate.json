@@ -44,12 +44,12 @@
       "enabled": false
     },
     {
-      "description": "Hugo is exempt from the major-only policy: it never leaves 0.x, so EVERY release is a minor and the rule above would silence it forever. Placed after that rule so this re-enable wins. Never automerged — the version is duplicated in hugobook-build-deploy.yml's hugo-version default AND in the self-hosted runner image (hugo-book-manager/gh-runner/Dockerfile.runner), and the workflow's 'Verify Hugo version' step fails the build on a mismatch. Bumping one side alone breaks every book repo, so this PR is a notification: merge it only alongside a runner-image rebuild + restart.",
+      "description": "Hugo is exempt from the major-only policy: it never leaves 0.x, so EVERY release is a minor and the rule above would silence it forever. Placed after that rule so this re-enable wins. Safe to automerge because the version now lives in exactly one place — the hugo-version default below. The runner image deliberately does not bake Hugo (see gh-runner/Dockerfile.runner); actions-hugo installs it per job, so there is nothing to keep in sync and the 'Verify Hugo version' guard cannot drift.",
       "matchPackageNames": ["gohugoio/hugo"],
       "matchUpdateTypes": ["minor", "patch"],
       "enabled": true,
-      "automerge": false,
-      "groupName": "hugo (manual — needs runner image rebuild)"
+      "automerge": true,
+      "groupName": "hugo"
     }
   ],
   "hostRules": [
