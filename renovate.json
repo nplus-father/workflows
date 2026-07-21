@@ -42,6 +42,14 @@
       "description": "Skip patch/minor/digest/pin entirely: no PR, no CI (major-only policy, saves Actions minutes). Placed last so it overrides package-specific re-enables above.",
       "matchUpdateTypes": ["minor", "patch", "digest", "pin"],
       "enabled": false
+    },
+    {
+      "description": "Hugo is exempt from the major-only policy: it never leaves 0.x, so EVERY release is a minor and the rule above would silence it forever. Placed after that rule so this re-enable wins. Never automerged — the version is duplicated in hugobook-build-deploy.yml's hugo-version default AND in the self-hosted runner image (hugo-book-manager/gh-runner/Dockerfile.runner), and the workflow's 'Verify Hugo version' step fails the build on a mismatch. Bumping one side alone breaks every book repo, so this PR is a notification: merge it only alongside a runner-image rebuild + restart.",
+      "matchPackageNames": ["gohugoio/hugo"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "enabled": true,
+      "automerge": false,
+      "groupName": "hugo (manual — needs runner image rebuild)"
     }
   ],
   "hostRules": [
