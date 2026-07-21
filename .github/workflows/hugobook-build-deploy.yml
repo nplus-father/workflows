@@ -23,10 +23,27 @@ on:
         # full build but skips artifact upload and the deploy jobs.
         type: boolean
         default: true
+      runner-labels:
+        # JSON array of runner labels for the build job. Leave empty and the
+        # workflow picks for you — see the runs-on comment below. Set it only
+        # to force a specific pool.
+        type: string
+        default: ''
 
 jobs:
   build:
-    runs-on: [self-hosted, linux, hugobook]
+    # Private caller → our self-hosted pool. Public caller → GitHub-hosted.
+    #
+    # This is a security boundary, not a preference: a fork PR against a PUBLIC
+    # repo runs attacker-authored code, and our self-hosted runners are on a host
+    # that also holds the production kubeconfig. It is decided HERE rather than
+    # left to each caller because the old default was self-hosted-for-everyone —
+    # a caller that simply forgot to override got the unsafe pool silently.
+    # hugo-book-template is public and did exactly that.
+    #
+    # `github.event.repository.private` is absent on some event payloads; that
+    # falls through to ubuntu-latest, which is the safe direction to fail.
+    runs-on: ${{ fromJSON(inputs['runner-labels'] != '' && inputs['runner-labels'] || (github.event.repository.private && '["self-hosted","linux","hugobook"]' || '["ubuntu-latest"]')) }}
     steps:
       - uses: actions/checkout@v7
         with:

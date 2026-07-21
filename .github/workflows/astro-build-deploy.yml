@@ -16,16 +16,15 @@ on:
         type: boolean
         default: true
       runner-labels:
-        # JSON array of runner labels for the build job. Defaults to our
-        # self-hosted pool; the image already ships Node 22 (see
-        # gh-runner/Dockerfile.runner). Callers that CANNOT use it must
-        # override with '["ubuntu-latest"]':
-        #   - public repos (fork PRs would run arbitrary code on our host)
-        #   - repos owned by Andrewnplus (org runners only serve org repos)
+        # JSON array of runner labels for the build job. Leave empty and the
+        # workflow picks: private caller → self-hosted pool (the image already
+        # ships Node 22, see gh-runner/Dockerfile.runner), public caller →
+        # GitHub-hosted. See the runs-on comment below. Set it only to force a
+        # pool — e.g. repos owned by Andrewnplus (org runners serve org repos only).
         # The deploy job always stays GitHub-hosted (actions/deploy-pages
         # needs the github-pages environment's OIDC token).
         type: string
-        default: '["self-hosted","linux","hugobook"]'
+        default: ''
 
 permissions:
   contents: read
@@ -38,7 +37,13 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ${{ fromJSON(inputs['runner-labels']) }}
+    # Security boundary, not a preference — a fork PR against a PUBLIC repo runs
+    # attacker-authored code, and the self-hosted runners sit on the host that
+    # holds the production kubeconfig. Deciding it here (instead of trusting every
+    # caller to override) is what makes forgetting it safe: the old default was
+    # self-hosted-for-everyone. Missing `private` on an event payload falls through
+    # to ubuntu-latest — the safe direction to fail.
+    runs-on: ${{ fromJSON(inputs['runner-labels'] != '' && inputs['runner-labels'] || (github.event.repository.private && '["self-hosted","linux","hugobook"]' || '["ubuntu-latest"]')) }}
     env:
       HUSKY: 0 # skip git hook install in CI
     steps:

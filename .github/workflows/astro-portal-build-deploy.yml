@@ -20,11 +20,13 @@ on:
         type: boolean
         default: true
       runner-labels:
-        # JSON array of runner labels for the build job. Defaults to our
-        # self-hosted pool (the portal repo is private and org-owned, so it
-        # qualifies). Deploy stays GitHub-hosted for the Pages OIDC token.
+        # JSON array of runner labels for the build job. Leave empty and the
+        # workflow picks: private caller → self-hosted pool (the portal repo is
+        # private and org-owned, so it qualifies), public caller → GitHub-hosted.
+        # See the runs-on comment below. Deploy stays GitHub-hosted for the
+        # Pages OIDC token.
         type: string
-        default: '["self-hosted","linux","hugobook"]'
+        default: ''
     secrets:
       PORTAL_GH_TOKEN:
         required: true
@@ -40,7 +42,13 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ${{ fromJSON(inputs['runner-labels']) }}
+    # Security boundary, not a preference — a fork PR against a PUBLIC repo runs
+    # attacker-authored code, and the self-hosted runners sit on the host that
+    # holds the production kubeconfig. Deciding it here (instead of trusting every
+    # caller to override) is what makes forgetting it safe: the old default was
+    # self-hosted-for-everyone. Missing `private` on an event payload falls through
+    # to ubuntu-latest — the safe direction to fail.
+    runs-on: ${{ fromJSON(inputs['runner-labels'] != '' && inputs['runner-labels'] || (github.event.repository.private && '["self-hosted","linux","hugobook"]' || '["ubuntu-latest"]')) }}
     steps:
       - uses: actions/checkout@v7
 

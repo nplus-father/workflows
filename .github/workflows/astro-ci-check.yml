@@ -12,19 +12,24 @@ on:
         type: string
         default: "24"
       runner-labels:
-        # JSON array of runner labels. Defaults to our self-hosted pool
-        # (host-level systemd runners on andrew-PC, ~/actions-runner-1..10).
+        # JSON array of runner labels. Leave empty and the workflow picks:
+        # private caller → self-hosted pool, public caller → GitHub-hosted
+        # (see the runs-on comment below). Set it only to force a pool —
+        # e.g. repos owned by Andrewnplus, since org runners only serve org repos.
         # Node comes from setup-node above, NOT from the host PATH — the
         # runners' .path has no nvm, so bare `node` there is /usr/bin/node 18.
-        # Callers that CANNOT use it must override with '["ubuntu-latest"]':
-        #   - public repos (fork PRs would run arbitrary code on our host)
-        #   - repos owned by Andrewnplus (org runners only serve org repos)
         type: string
-        default: '["self-hosted","linux","hugobook"]'
+        default: ''
 
 jobs:
   check:
-    runs-on: ${{ fromJSON(inputs['runner-labels']) }}
+    # Security boundary, not a preference — a fork PR against a PUBLIC repo runs
+    # attacker-authored code, and the self-hosted runners sit on the host that
+    # holds the production kubeconfig. Deciding it here (instead of trusting every
+    # caller to override) is what makes forgetting it safe: the old default was
+    # self-hosted-for-everyone. Missing `private` on an event payload falls through
+    # to ubuntu-latest — the safe direction to fail.
+    runs-on: ${{ fromJSON(inputs['runner-labels'] != '' && inputs['runner-labels'] || (github.event.repository.private && '["self-hosted","linux","hugobook"]' || '["ubuntu-latest"]')) }}
     env:
       HUSKY: 0
     steps:
