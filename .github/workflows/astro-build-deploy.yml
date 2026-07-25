@@ -67,7 +67,28 @@ jobs:
       - name: Build
         run: npm run build
 
-      - uses: actions/configure-pages@v6
+      # 部署監控用的版本印記。站台外部（bookshelf-echo 的 site-publisher sidecar）
+      # 靠它問「線上這份是哪個 commit」，才能分辨「推上去了」與「真的上線了」——
+      # 這兩件事之間隔著 GitHub Pages，而那一段一直沒人守。CI 只負責寫，
+      # 判讀與告警在 nplus-infra 那側。base path 不影響：dist/ 就是站台根目錄。
+      - name: Stamp build version
+        run: |
+          printf '{"sha":"%s","ref":"%s","builtAt":"%s"}\n' \
+            "$GITHUB_SHA" "$GITHUB_REF_NAME" "$(date -u +%FT%TZ)" > dist/version.json
+
+      # Pages 的 API 會偶發 503（"No server is currently available"），2026-07-20
+      # 就這樣掛掉一次 build。重試一次就夠：連兩次失敗才算真故障，不必無限退避。
+      # sleep 是必要的——立刻重試很可能打回同一台壞掉的後端。
+      - id: pages
+        uses: actions/configure-pages@v6
+        continue-on-error: true
+
+      - name: Retry configure-pages
+        if: steps.pages.outcome == 'failure'
+        run: sleep 15
+
+      - if: steps.pages.outcome == 'failure'
+        uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v5
         with:
@@ -78,7 +99,22 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      # 第一次成功時 retry 沒跑過、outputs 是空的，反之亦然；空字串在表達式裡
+      # 是 falsy，所以 || 剛好選到有值的那個。
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment-retry.outputs.page_url }}
     steps:
+      # deploy-pages 的預設 timeout 是 10 分鐘，等滿了就整個 job 失敗、沒有第二次
+      # 機會（2026-07-25 就是這樣：build 19 秒過關，deploy 空等 10m6s 後 abort）。
+      # 砍成 5 分鐘 + 重試一次：最壞情況的總時長跟原本一樣，但多了一次真的補救。
+      # 正常部署 30 秒內就回來，縮短 timeout 不會誤傷。
       - id: deployment
         uses: actions/deploy-pages@v5
+        continue-on-error: true
+        with:
+          timeout: 300000
+
+      - id: deployment-retry
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v5
+        with:
+          timeout: 300000

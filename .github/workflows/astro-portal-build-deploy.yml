@@ -80,7 +80,17 @@ jobs:
       - name: Build
         run: npm run build
 
-      - uses: actions/configure-pages@v6
+      # Pages API 偶發 503，重試一次。理由與 astro-build-deploy.yml 同一條。
+      - id: pages
+        uses: actions/configure-pages@v6
+        continue-on-error: true
+
+      - name: Retry configure-pages
+        if: steps.pages.outcome == 'failure'
+        run: sleep 15
+
+      - if: steps.pages.outcome == 'failure'
+        uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v5
         with:
@@ -91,7 +101,17 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment-retry.outputs.page_url }}
     steps:
+      # timeout 砍半 + 重試一次，理由與 astro-build-deploy.yml 同一條。
       - id: deployment
         uses: actions/deploy-pages@v5
+        continue-on-error: true
+        with:
+          timeout: 300000
+
+      - id: deployment-retry
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v5
+        with:
+          timeout: 300000
