@@ -23,8 +23,8 @@ on:
         # JSON array of runner labels for the build job. Leave empty and the
         # workflow picks: private caller → self-hosted pool (the portal repo is
         # private and org-owned, so it qualifies), public caller → GitHub-hosted.
-        # See the runs-on comment below. Deploy stays GitHub-hosted for the
-        # Pages OIDC token.
+        # See the runs-on comment below. Deploy follows the same rule —
+        # the Pages OIDC token is also available on self-hosted runners.
         type: string
         default: ''
     secrets:
@@ -98,7 +98,9 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    # 與 build 同一條規則：private → 自家 runner，public → GitHub-hosted。
+    # OIDC id-token 在 self-hosted 一樣拿得到（astro-build-deploy.yml 同款註解）。
+    runs-on: ${{ fromJSON(inputs['runner-labels'] != '' && inputs['runner-labels'] || (github.event.repository.private && '["self-hosted","linux","hugobook"]' || '["ubuntu-latest"]')) }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url || steps.deployment-retry.outputs.page_url }}

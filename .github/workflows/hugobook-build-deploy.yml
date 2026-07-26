@@ -129,7 +129,10 @@ jobs:
   deploy-pages:
     if: ${{ inputs.deploy && inputs.deploy-mode == 'pages-artifact' }}
     needs: build
-    runs-on: ubuntu-latest
+    # 與 build 同一條規則：private → 自家 runner，public → GitHub-hosted。
+    # deploy-pages 是純 node action，OIDC id-token 在 self-hosted 一樣拿得到；
+    # private repo 的 hosted job 計費無條件進位 1 分鐘，全庫 flush 時很可觀。
+    runs-on: ${{ fromJSON(inputs['runner-labels'] != '' && inputs['runner-labels'] || (github.event.repository.private && '["self-hosted","linux","hugobook"]' || '["ubuntu-latest"]')) }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url || steps.deployment-retry.outputs.page_url }}
@@ -152,7 +155,8 @@ jobs:
   deploy-gh-pages-branch:
     if: ${{ inputs.deploy && inputs.deploy-mode == 'gh-pages-branch' }}
     needs: build
-    runs-on: ubuntu-latest
+    # 與 deploy-pages 同一條規則，理由見上。
+    runs-on: ${{ fromJSON(inputs['runner-labels'] != '' && inputs['runner-labels'] || (github.event.repository.private && '["self-hosted","linux","hugobook"]' || '["ubuntu-latest"]')) }}
     steps:
       - uses: actions/download-artifact@v8
         with:
