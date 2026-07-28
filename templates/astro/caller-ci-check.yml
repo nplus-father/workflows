@@ -13,4 +13,9 @@ jobs:
     # Builds run on the self-hosted [hugobook] pool by default. Uncomment for
     # public repos or repos owned by Andrewnplus — neither can use org runners.
     # with:
+    #   node-version: '22'
+    #   # Set false when package.json has no such script — `npm run lint` on a
+    #   # missing script is exit 1, not a skip.
+    #   run-lint: false
+    #   run-format-check: false
     #   runner-labels: '["ubuntu-latest"]'

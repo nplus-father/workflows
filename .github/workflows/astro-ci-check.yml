@@ -11,6 +11,18 @@ on:
       node-version:
         type: string
         default: "24"
+      run-lint:
+        # 同 astro-build-deploy.yml 的同名 input —— 兩條共用流程的 caller 介面
+        # 必須一致，否則一個站在 deploy 關得掉、在 PR gate 關不掉。不是每個
+        # Astro 站都有 lint / format:check script（visualization-sites 那批只有
+        # build/dev/preview），而 `npm run lint` 對缺席的 script 是 exit 1。
+        # 刻意用顯式開關而不是 `--if-present`：後者會讓打錯字的 script 名靜默
+        # 消失，那正是 gate 最不該有的失敗形狀。
+        type: boolean
+        default: true
+      run-format-check:
+        type: boolean
+        default: true
       runner-labels:
         # JSON array of runner labels. Leave empty and the workflow picks:
         # private caller → self-hosted pool, public caller → GitHub-hosted
@@ -42,6 +54,10 @@ jobs:
       - run: npm ci
       - name: Dependency drift (note stations only)
         run: npm run --if-present deps:check
-      - run: npm run lint
-      - run: npm run format:check
+      - name: Lint
+        if: ${{ inputs.run-lint }}
+        run: npm run lint
+      - name: Format check
+        if: ${{ inputs.run-format-check }}
+        run: npm run format:check
       - run: npm run build
