@@ -27,13 +27,6 @@
       "enabled": false
     },
     {
-      "description": "nplus-book-core indirect updates",
-      "matchPackageNames": ["github.com/nplus-father/nplus-book-core"],
-      "matchDepTypes": ["indirect"],
-      "groupName": "all dependencies",
-      "enabled": true
-    },
-    {
       "description": "book convention plugin from GitHub Packages",
       "matchPackageNames": ["com.andrewnplus.book"],
       "registryUrls": ["https://maven.pkg.github.com/nplus-father/book-gradle-conventions"]
@@ -50,6 +43,14 @@
       "enabled": true,
       "automerge": true,
       "groupName": "hugo"
+    },
+    {
+      "description": "nplus-book-core is exempt from the major-only policy, for the same structural reason as Hugo: its v2.x tags are unusable (the repo's go.mod module path lacks the /v2 suffix, so Go refuses to resolve them), which means every theme release has to ship as a v1.x minor. Under the major-only rule those were silenced outright — the theme could not reach a single book repo, and the handbooks sat on v1.5.0 while v1.6.0 had already shipped. Placed after that rule so this re-enable wins. Cost is understood and accepted: each release fans out to ~1400 repos, one CI build and Pages deploy apiece.",
+      "matchPackageNames": ["github.com/nplus-father/nplus-book-core"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "enabled": true,
+      "automerge": true,
+      "groupName": "book core"
     }
   ],
   "hostRules": [
