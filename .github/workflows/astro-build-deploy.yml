@@ -31,9 +31,22 @@ permissions:
   pages: write
   id-token: write
 
+# cancel-in-progress 是 true 而不是 false —— Pages 部署本來就是「最後一次贏」，
+# 取消進行中的舊 run 不會少發任何東西（新 run 帶的是包含舊 commit 的更新版本）。
+#
+# false 的代價在 2026-08-14 現形：GitHub 的 queue 深度是 1，所以「排隊等」實際上
+# 是「新 run 進來時取消掉前一個還在排隊的 run」。只要有一個 run 卡在 github-pages
+# 的 environment gate 上（keller-note 8/6 那個：wait_timer 0、reviewers 空、
+# 連 org owner 都無法核可，沒有任何人放得了行），它就永遠佔著這把鎖，之後每次
+# push 都排隊、再被下一次 push 取消。keller-note / damodaran-note /
+# image-style-note / schwager-note 就這樣安靜停更了 4-8 天，Actions 頁面上
+# 只顯示一排 cancelled —— 那個字看起來像有人手動取消，不像故障。
+#
+# 改成 true 之後，殭屍 run 會被下一次 push 直接輾過，這個故障模式不再成立。
+# 注意 timeout-minutes 救不了這個情境：等 environment gate 的時間不計入 job timeout。
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
