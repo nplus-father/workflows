@@ -112,6 +112,20 @@ jobs:
           # (/home/andrew/.cache/hugo), a persistent cache shared across runners,
           # instead of a per-job /tmp dir that was thrown away every run.
 
+      # 部署監控用的版本印記，與 astro-build-deploy.yml 的同名步驟同一個用途：
+      # 讓站台外部問得到「線上這份是哪個 commit」。CI 綠燈只證明 GitHub 那側
+      # 走完了，證明不了瀏覽器拿到的是新的 —— 中間還隔著 Pages 的建置與 CDN，
+      # 而那一段 2026-07-25 真的斷過（deploy-pages 空等 10 分鐘後 abort）。
+      #
+      # 判讀在 nplus-infra 的 check-site-deploys.sh --verify-live，CI 只負責寫。
+      # 這條 2026-08-15 才加，所以只有「加完之後又部署過」的站問得到 ——
+      # 沒有 version.json 的站是「無法驗證」，不是「壞掉」，兩者必須分開算。
+      # base path 不影響：site/public 就是站台根目錄。
+      - name: Stamp build version
+        run: |
+          printf '{"sha":"%s","ref":"%s","builtAt":"%s"}\n' \
+            "$GITHUB_SHA" "$GITHUB_REF_NAME" "$(date -u +%FT%TZ)" > site/public/version.json
+
       - name: Upload Pages artifact
         if: ${{ inputs.deploy && inputs.deploy-mode == 'pages-artifact' }}
         uses: actions/upload-pages-artifact@v5
