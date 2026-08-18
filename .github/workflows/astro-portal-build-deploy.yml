@@ -30,6 +30,13 @@ on:
     secrets:
       PORTAL_GH_TOKEN:
         required: true
+      GATE_BUILD_TOKEN:
+        # Shared secret that lets the build read each station's deployed
+        # index.json through the nplus.wiki gate (the Worker checks the
+        # `x-gate-build` header). Optional — without it the fetchers silently
+        # carry over their previous values, which is how the /health/ word
+        # counts froze on 2026-08-18 with CI green.
+        required: false
 
 permissions:
   contents: read
@@ -78,6 +85,10 @@ jobs:
         run: npm run fetch-responses
 
       - name: Build
+        env:
+          # prebuild runs fetch-index / fetch-stations / fetch-health, which read
+          # the deployed sites from behind the gate. Unset → they carry over.
+          GATE_BUILD_TOKEN: ${{ secrets.GATE_BUILD_TOKEN }}
         run: npm run build
 
       # Pages API 偶發 503，重試一次。理由與 astro-build-deploy.yml 同一條。
