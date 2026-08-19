@@ -30,6 +30,23 @@ on:
         type: string
         default: ''
 
+# 與 astro-build-deploy.yml 同一條鎖，理由也同一條（見那份的長註解）：Pages 部署
+# 是「最後一次贏」，取消進行中的舊 run 不會少發任何東西。
+#
+# 這份 2026-08-18 才付出代價：deep-overview 改寫在同一個 repo 內 26 秒中推了兩個
+# commit，兩個 Deploy run 疊在一起，後者的 deploy-pages 撞上前者還沒完成的部署 ——
+#   HttpError: Deployment request failed for <新 sha> due to in progress deployment.
+#   Please cancel <舊 sha> first or wait for it to complete.
+# 20 個 repo 這樣掛掉。build 全都是綠的，只有部署那一步失敗，所以站台安靜地停在
+# 「舊的那個 commit」——紅字在 Actions 頁，錯的內容在線上，兩邊不在同一個地方看。
+#
+# 已有的「Retry deploy to GitHub Pages」救不了：重試是立刻發的，前一個部署還在跑。
+# 補救也比想像中貴 —— upload-pages-artifact 的保留期是 1 天，隔天 rerun --failed
+# 會被 GitHub 以「cannot be rerun」擋掉，只能整個 run 重跑（含 build）。
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
 jobs:
   build:
     # Private caller → our self-hosted pool. Public caller → GitHub-hosted.
