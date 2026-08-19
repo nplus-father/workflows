@@ -123,6 +123,16 @@ jobs:
         with:
           timeout: 300000
 
+      # 退避再重試，理由與 hugobook-build-deploy.yml 同一條（見那份的長註解）：佇列塞住時
+      # 立刻重試只是再撞一次，而且會被第一次 timeout 自己發出的取消掃到。抖動是為了不讓
+      # 同時失敗的多個 repo 在同一秒一起重試。
+      - name: Back off before retrying the Pages deploy
+        if: steps.deployment.outcome == 'failure'
+        run: |
+          wait=$(( 60 + RANDOM % 120 ))
+          echo "Pages deploy failed; backing off ${wait}s before the retry."
+          sleep "$wait"
+
       - id: deployment-retry
         if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v5

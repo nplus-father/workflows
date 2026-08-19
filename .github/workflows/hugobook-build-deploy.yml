@@ -40,7 +40,8 @@ on:
 # 20 個 repo 這樣掛掉。build 全都是綠的，只有部署那一步失敗，所以站台安靜地停在
 # 「舊的那個 commit」——紅字在 Actions 頁，錯的內容在線上，兩邊不在同一個地方看。
 #
-# 已有的「Retry deploy to GitHub Pages」救不了：重試是立刻發的，前一個部署還在跑。
+# 當時的「Retry deploy to GitHub Pages」救不了：重試是立刻發的，前一個部署還在跑
+# （這點已在下面的 deploy-pages job 補上退避，但那治的是佇列，治不了同 repo 撞車）。
 # 補救也比想像中貴 —— upload-pages-artifact 的保留期是 1 天，隔天 rerun --failed
 # 會被 GitHub 以「cannot be rerun」擋掉，只能整個 run 重跑（含 build）。
 concurrency:
@@ -175,6 +176,25 @@ jobs:
         continue-on-error: true
         with:
           timeout: 300000
+
+      # 退避再重試，不要立刻重試。2026-08-18 全庫 19 個 repo 的失敗長這樣：
+      #   Current status: deployment_queued   ← 每 5 秒一次，重複 56 次
+      #   Timeout reached, aborting!          ← 整整 5 分鐘卡在佇列，從未開始
+      #   Canceling Pages deployment...
+      #   Deployment cancelled.               ← 立刻發的重試也跟著死
+      #
+      # 佇列被灌爆時（那次是 986 本書在數小時內密集 push）立刻重試等於往同一個塞住的
+      # 佇列再撞一次；更糟的是第一次 timeout 會先取消自己的部署，重試發出的新部署反而
+      # 被那個取消掃到 —— log 最後一行的 `Deployment cancelled.` 就是這麼來的。
+      #
+      # 帶抖動而不是固定秒數：沒有抖動的話，同時失敗的幾十個 repo 會在同一秒一起重試，
+      # 把剛排空的佇列再次填滿。只在失敗路徑上跑，正常部署完全不受影響。
+      - name: Back off before retrying the Pages deploy
+        if: steps.deployment.outcome == 'failure'
+        run: |
+          wait=$(( 60 + RANDOM % 120 ))
+          echo "Pages deploy failed; backing off ${wait}s before the retry."
+          sleep "$wait"
 
       - name: Retry deploy to GitHub Pages
         id: deployment-retry
