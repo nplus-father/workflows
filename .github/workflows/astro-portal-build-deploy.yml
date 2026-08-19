@@ -111,6 +111,18 @@ jobs:
         env:
           # App 沒設定時上一步是 skipped，outputs.token 是空字串 → 退回 PAT。
           GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.PORTAL_GH_TOKEN }}
+          # 只掃 org。fetch-repos.ts 的預設是 "nplus-father,Andrewnplus"，而個人
+          # 帳號那一支走的是 `GET /user/repos` —— **installation token 打不了那個
+          # 端點**（403 Resource not accessible by integration），因為 token 綁的是
+          # 「安裝」不是「使用者」。App 切換後第一次 build 就是這樣掛的。
+          #
+          # 把它拿掉沒有損失：實測 Andrewnplus 有 11 個 repo 可見，但帶 nplus-portal
+          # topic 的是 0 個，產出的 repos.json 1861 項全部來自 org。
+          #
+          # 哪天真的要收個人帳號的 repo，正解不是把這行改回去（PAT 路徑會回來，
+          # 額度共用的問題也跟著回來），而是把 App 也安裝到 Andrewnplus 帳號、
+          # 並改用 GET /installation/repositories。
+          PORTAL_OWNERS: nplus-father
         run: npm run fetch-repos
       - name: Fetch response-articles manifest
         # Pulls https://andrewnplus.github.io/responses.json so book cards
