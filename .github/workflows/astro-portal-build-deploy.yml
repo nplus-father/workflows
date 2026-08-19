@@ -4,8 +4,19 @@ name: "Astro Portal Build and Deploy"
 # (nplus-father/nplus-father.github.io). Differs from astro-build-deploy.yml
 # by running tests and fetching repo metadata from GitHub before build.
 #
-# Required secret (passed via `secrets:` from caller):
-#   PORTAL_GH_TOKEN — PAT with `repo` scope to read private repo metadata.
+# Secrets (passed via `secrets:` from caller):
+#   PORTAL_APP_ID / PORTAL_APP_PRIVATE_KEY — GitHub App 的憑證。有設就用它換
+#     installation token 去讀 org 的 repo metadata。**優先於 PAT。**
+#   PORTAL_GH_TOKEN — 舊路徑：使用者 PAT（`repo` scope）。App 沒設定時的退路。
+#
+# 為什麼要多一條 App 路徑：REST 的 5,000/hr 是綁在「使用者」身上的，Andrew 名下
+# 每一個 PAT 加上 gh CLI 全部共用同一個池。所以這個 production build 會被終端機的
+# 隨手操作餓死 —— 已經發生兩次（2026-08-18 03:37 UTC、2026-08-19 07:00 UTC，
+# 後者是一輪 1753 個 repo 的 REST 掃描）。fetch-repos.ts 的註解早就記下這件事。
+#
+# App installation 是獨立身分、獨立額度（org 安裝 5,000/hr 起，每超過 20 個 repo
+# 再 +50/hr，上限 12,500/hr）。重點不是額度變大 —— 例行工作連 500/hr 都用不到 ——
+# 而是**隔離**：入口網不該跟別人的活動共命運。
 
 on:
   workflow_call:
@@ -28,8 +39,14 @@ on:
         type: string
         default: ''
     secrets:
+      PORTAL_APP_ID:
+        required: false
+      PORTAL_APP_PRIVATE_KEY:
+        required: false
       PORTAL_GH_TOKEN:
-        required: true
+        # App 那組設好之後這個就可以拿掉；在那之前它仍是實際生效的路徑，
+        # 所以維持 required: false 而不是直接刪，才能兩種設定都跑得起來。
+        required: false
       GATE_BUILD_TOKEN:
         # Shared secret that lets the build read each station's deployed
         # index.json through the nplus.wiki gate (the Worker checks the
@@ -56,6 +73,11 @@ jobs:
     # self-hosted-for-everyone. Missing `private` on an event payload falls through
     # to ubuntu-latest — the safe direction to fail.
     runs-on: ${{ fromJSON(inputs['runner-labels'] != '' && inputs['runner-labels'] || (github.event.repository.private && '["self-hosted","linux","hugobook"]' || '["ubuntu-latest"]')) }}
+    env:
+      # `secrets` 這個 context 在 step 的 `if:` 裡讀不到（GitHub 的 context
+      # availability 表沒有列它），所以要判斷「App 有沒有設定」只能先落到 env。
+      # 直接寫 if: secrets.PORTAL_APP_ID != '' 會恆為 false，安靜地永遠走 PAT。
+      PORTAL_APP_ID: ${{ secrets.PORTAL_APP_ID }}
     steps:
       - uses: actions/checkout@v7
 
@@ -74,9 +96,21 @@ jobs:
         if: ${{ inputs.run-test }}
         run: npm run test
 
+      # owner 指到 org（而不是留空）才會拿到涵蓋整個 installation 的 token；
+      # 留空的話 scope 只有目前這個 repo，讀不到另外 1800 個 book repo。
+      - name: Mint a GitHub App installation token
+        id: app-token
+        if: env.PORTAL_APP_ID != ''
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.PORTAL_APP_ID }}
+          private-key: ${{ secrets.PORTAL_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
       - name: Fetch portal repo data from GitHub
         env:
-          GH_TOKEN: ${{ secrets.PORTAL_GH_TOKEN }}
+          # App 沒設定時上一步是 skipped，outputs.token 是空字串 → 退回 PAT。
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.PORTAL_GH_TOKEN }}
         run: npm run fetch-repos
       - name: Fetch response-articles manifest
         # Pulls https://andrewnplus.github.io/responses.json so book cards
