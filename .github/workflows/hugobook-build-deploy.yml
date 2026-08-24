@@ -79,6 +79,24 @@ jobs:
           # HugoBook theme is a Hugo module via go.mod, not a git submodule),
           # so submodules: recursive was a no-op.
 
+      # 主題版本守門。site/go.mod 只要出現 `require nplus-book-core`，這個站就變成
+      # 孤兒：拿不到任何主題更新，用到新 shortcode 會 build 失敗，新站台參數（如
+      # stationKind）設了也沒人讀。全庫靠的是「go.mod 留空、Hugo 在 build 時抓最新
+      # tag」，規則寫在 nplus-book-core/README.md —— 但寫在 README 攔不住任何人：
+      # 2026-08-24 盤點時 11 本手冊整批卡在 v1.7.0（漏掉六個版本），books-done 另有
+      # 12 本釘在 v1.9.3～v1.13.0，全程沒有一道紅燈。當天全部清乾淨，這條就是不讓它
+      # 再長回來的那道紅燈。
+      #
+      # 必須排在 Build site 之前：hugo 自己會在 build 時把解析到的版本寫回 go.mod，
+      # 放後面等於檢查自己的產物，永遠失敗。
+      - name: Guard against a pinned theme version
+        run: |
+          if [ -f site/go.mod ] && grep -qE 'github\.com/nplus-father/nplus-book-core[[:space:]]+v' site/go.mod; then
+            echo "::error file=site/go.mod::site/go.mod pins nplus-book-core, so this site can never receive theme updates. Delete the require block and empty site/go.sum — Hugo resolves the latest tag at build time. See nplus-book-core/README.md."
+            grep -nE 'nplus-book-core' site/go.mod
+            exit 1
+          fi
+
       - name: Setup Java
         uses: actions/setup-java@v5
         with:

@@ -93,6 +93,12 @@ but not dangerous:
 | `deploy-mode` | `pages-artifact` | Set `gh-pages-branch` for legacy repos. |
 | `deploy` | `true` | Set `false` for a build-only gate (e.g. Renovate PR check): builds but skips upload + deploy. |
 
+> [!IMPORTANT]
+>
+> **`site/go.mod` 不可以 `require` `nplus-book-core`。** build 前有一道 `Guard against a
+> pinned theme version` 會直接 fail。釘了版本的站再也拿不到主題更新——新 shortcode
+> 用了會 build 失敗，新站台參數設了也沒人讀。留空即可，Hugo 會在 build 時抓最新 tag。
+
 ### `astro-build-deploy.yml` (Astro sites)
 
 | Input | Default | When to override |
