@@ -109,6 +109,7 @@ jobs:
       #   GRADLE_USER_HOME=/home/andrew/.gradle   (Gradle deps + wrapper)
       #   GOMODCACHE=/home/andrew/go/pkg/mod      (Hugo book-theme modules)
       #   HUGO_CACHEDIR=/home/andrew/.cache/hugo  (Hugo file cache)
+      # The Hugo binary itself is cached separately, see "Setup Hugo" below.
       # actions/cache would tar those multi-GB dirs, upload them to GitHub's
       # cloud, and download them back every run — per repo — which is pure
       # waste on disk-persistent runners and risks concurrent-write corruption
@@ -121,11 +122,40 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
         run: ./gradlew spotlessCheck --no-daemon
 
+      # Hugo binary: installed once per runner into the tool cache, then reused.
+      # peaceiris/actions-hugo re-downloaded the ~25 MB tarball from GitHub
+      # Releases on every job. That cost ~19s on a good day; on 2026-09-26 the
+      # same download took up to 7m47s, so eight runners spent a fleet push
+      # re-fetching one file while deploy-pages jobs queued behind them.
+      # Not under HUGO_CACHEDIR: `hugo --gc` prunes that directory.
       - name: Setup Hugo
-        uses: peaceiris/actions-hugo@v3
-        with:
-          hugo-version: ${{ inputs.hugo-version }}
-          extended: true
+        env:
+          HUGO_VERSION: ${{ inputs.hugo-version }}
+        run: |
+          case "$RUNNER_ARCH" in
+            X64) arch=amd64 ;;
+            ARM64) arch=arm64 ;;
+            *) echo "::error::unsupported runner arch $RUNNER_ARCH"; exit 1 ;;
+          esac
+          dir="$RUNNER_TOOL_CACHE/hugo-extended/$HUGO_VERSION/$arch"
+          if [ -x "$dir/hugo" ]; then
+            echo "Hugo $HUGO_VERSION from tool cache: $dir"
+          else
+            asset="hugo_extended_${HUGO_VERSION}_linux-${arch}.tar.gz"
+            base="https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}"
+            mkdir -p "$RUNNER_TOOL_CACHE"
+            tmp=$(mktemp -d "$RUNNER_TOOL_CACHE/.hugo-dl.XXXXXX")
+            curl -fsSL --retry 3 -o "$tmp/$asset" "$base/$asset"
+            curl -fsSL --retry 3 -o "$tmp/checksums.txt" "$base/hugo_${HUGO_VERSION}_checksums.txt"
+            (cd "$tmp" && grep " $asset\$" checksums.txt | sha256sum -c -)
+            mkdir -p "$tmp/x" "$(dirname "$dir")"
+            tar xzf "$tmp/$asset" -C "$tmp/x" hugo
+            # rename is atomic; if another job got there first, keep theirs
+            mv -T "$tmp/x" "$dir" 2>/dev/null || true
+            rm -rf "$tmp"
+            echo "Hugo $HUGO_VERSION downloaded into tool cache: $dir"
+          fi
+          echo "$dir" >> "$GITHUB_PATH"
 
       - name: Verify Hugo version
         # Fail fast if a stale self-hosted-runner hugo shadows the one just
