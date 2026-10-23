@@ -86,7 +86,7 @@ but not dangerous:
 
 | Input | Default | When to override |
 |---|---|---|
-| `hugo-version` | `0.163.3` | Book needs a newer/older Hugo. |
+| `hugo-version` | `0.168.0` | Book needs a newer/older Hugo. |
 | `java-version` | `25` | Book's Gradle needs a specific JDK. |
 | `base-url-prefix` | `https://nplus.wiki` | Publishing to a different domain. |
 | `run-spotless` | `true` | Disable while fixing formatting. |

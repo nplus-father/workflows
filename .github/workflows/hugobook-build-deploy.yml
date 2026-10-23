@@ -5,7 +5,7 @@ on:
     inputs:
       hugo-version:
         type: string
-        default: '0.163.3'
+        default: '0.168.0'
       java-version:
         type: string
         default: '25'

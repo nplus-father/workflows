@@ -69,9 +69,9 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Hugo version in GitHub Actions workflows",
+      "description": "Hugo version in GitHub Actions workflows: a caller's `hugo-version: x` override, and the reusable workflow's input default, where the value sits two lines below on `default:` (the original same-line pattern never matched it, so Renovate never saw Hugo).",
       "managerFilePatterns": ["/^\\.github/workflows/.*\\.ya?ml$/"],
-      "matchStrings": ["hugo-version:\\s*['\"]?(?<currentValue>[0-9.]+)['\"]?"],
+      "matchStrings": ["hugo-version:\\s*(?:type:\\s*string\\s*)?(?:default:\\s*)?['\"]?(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)['\"]?"],
       "depNameTemplate": "gohugoio/hugo",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.+)$"
