@@ -60,9 +60,11 @@ permissions:
   pages: write
   id-token: write
 
+# cancel-in-progress: true，理由與 astro-build-deploy.yml 同一條（見那份的長註解）：
+# false 時一個卡在 github-pages environment gate 的 run 會永遠佔住這把鎖。
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
