@@ -15,9 +15,6 @@ on:
       run-spotless:
         type: boolean
         default: true
-      deploy-mode:
-        type: string
-        default: 'pages-artifact'
       deploy:
         # Set false for a build-only gate (e.g. Renovate PR check): runs the
         # full build but skips artifact upload and the deploy jobs.
@@ -193,21 +190,13 @@ jobs:
             "$GITHUB_SHA" "$GITHUB_REF_NAME" "$(date -u +%FT%TZ)" > site/public/version.json
 
       - name: Upload Pages artifact
-        if: ${{ inputs.deploy && inputs.deploy-mode == 'pages-artifact' }}
+        if: ${{ inputs.deploy }}
         uses: actions/upload-pages-artifact@v5
         with:
           path: site/public
 
-      - name: Upload site artifact (legacy path)
-        if: ${{ inputs.deploy && inputs.deploy-mode == 'gh-pages-branch' }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: site-public
-          path: site/public
-          retention-days: 1
-
   deploy-pages:
-    if: ${{ inputs.deploy && inputs.deploy-mode == 'pages-artifact' }}
+    if: ${{ inputs.deploy }}
     needs: build
     # 與 build 同一條規則：private → 自家 runner，public → GitHub-hosted。
     # deploy-pages 是純 node action，OIDC id-token 在 self-hosted 一樣拿得到；
@@ -250,20 +239,3 @@ jobs:
         uses: actions/deploy-pages@v5
         with:
           timeout: 300000
-
-  deploy-gh-pages-branch:
-    if: ${{ inputs.deploy && inputs.deploy-mode == 'gh-pages-branch' }}
-    needs: build
-    # 與 deploy-pages 同一條規則，理由見上。
-    runs-on: ${{ fromJSON(inputs['runner-labels'] != '' && inputs['runner-labels'] || (github.event.repository.private && '["self-hosted","linux","hugobook"]' || '["ubuntu-latest"]')) }}
-    steps:
-      - uses: actions/download-artifact@v8
-        with:
-          name: site-public
-          path: ./public
-      - uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: ./public
-          keep_files: false
