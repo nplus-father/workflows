@@ -1,97 +1,89 @@
 # nplus-father/workflows
 
-Centralised GitHub Actions reusable workflows for all sites under the
-`nplus-father` and `Andrewnplus` orgs. Changing a build step here propagates
-to every consumer repo on their next push — no need to touch each repo.
+Centralised GitHub Actions reusable workflows for every site under the
+`nplus-father` and `Andrewnplus` accounts. Changing a build step here propagates
+to every consumer repo on its next run — no need to touch each repo.
 
 ## What's inside
 
-| Path | Purpose |
-|---|---|
-| `.github/workflows/hugobook-build-deploy.yml` | Hugo build (self-hosted) + Deploy. Used by ~860 book repos. |
-| `.github/workflows/astro-build-deploy.yml` | Astro build (GitHub-hosted) + Deploy via Pages-artifact. |
-| `.github/workflows/astro-ci-check.yml` | Astro PR check (lint + format + build). |
-| `.github/workflows/ci-check.yml` | Dummy CI for HugoBook branch protection. |
-| `templates/caller-deploy.yml` | Drop-in `deploy.yml` for HugoBook repos. |
-| `templates/caller-ci-check.yml` | Drop-in `ci-check.yml` for HugoBook repos. |
-| `templates/astro/` | Drop-in caller workflows + dev configs for Astro repos. |
-| `docs/MIGRATION.md` | Migration guide + troubleshooting. |
+| Workflow | Purpose | Callers (2026-10) |
+|---|---|---|
+| `hugobook-build-deploy.yml` | Hugo book build + GitHub Pages deploy. | ~1850 book and handbook repos |
+| `ci-check.yml` | HugoBook PR gate: the same build with `deploy: false`. | ~1850 book and handbook repos |
+| `astro-build-deploy.yml` | Astro site build + GitHub Pages deploy. | ~90 note stations and sites |
+| `astro-ci-check.yml` | Astro PR gate: deps drift, lint, format, build. | ~90 note stations and sites |
+| `astro-portal-build-deploy.yml` | The nplus.wiki portal: tests + GitHub metadata fetch before build. | `nplus-father/nplus-father.github.io` |
+
+`renovate.json` is the shared Renovate preset that book repos and note stations extend
+with `github>nplus-father/workflows//renovate`.
+
+## Onboarding a new repo
+
+Don't copy caller files by hand — create the repo from its template, which
+already carries `deploy.yml` / `ci-check.yml` wired to `@v1`:
+
+- Hugo book: `nplus-father/hugo-book-template`
+- Astro note station: `nplus-father/note-template`
+
+Then, in the new repo:
+
+1. Settings → Pages → Source: **GitHub Actions**.
+2. Add `public/CNAME` (Astro) if it serves a custom domain.
+
+This repo's own Settings → Actions → General → Access must stay at
+**"Accessible from repositories in the 'nplus-father' organization"**, otherwise
+callers fail with *"called workflow is not accessible"*.
 
 ## Versioning
 
-Callers pin with a git tag:
+Callers pin the rolling major tag:
 
 ```yaml
 uses: nplus-father/workflows/.github/workflows/hugobook-build-deploy.yml@v1
-uses: nplus-father/workflows/.github/workflows/astro-build-deploy.yml@v1
 ```
 
-- `v1` = stable major. Backward-compatible additions and bug fixes land here.
-- `v2`, `v3` = breaking changes. Old callers keep working until they opt in.
-- `@main` = bleeding edge. Only use in pilot repos while iterating.
-
-After merging any PR here:
+After a change lands on `main` and has run green on a real consumer:
 
 ```bash
 git tag -fa v1 -m "v1 rolling tag"
 git push -f origin v1
 ```
 
-(Force-push the rolling major tag. Callers pinned to `@v1` pick up on next run.)
+### Release discipline
 
-### Release discipline (avoid breaking every consumer at once)
+Every caller pins `@v1`, so a bad commit on `v1` breaks ~1950 repos at once.
 
-Because every Astro / HugoBook caller pins `@v1`, a bad commit on `v1` simultaneously
-breaks **all** consumers (~860 book repos + 3 Astro sites). To keep this powerful
-but not dangerous:
-
-1. **Test on `main` before moving `v1`.** Push your change, then dispatch the
-   relevant workflow on a low-stakes consumer with `@main`:
+1. **Test on `main` before moving `v1`.** Point one low-stakes consumer's
+   `uses:` at `@main` (or the commit sha), push, and watch the run with
+   `gh run watch --repo nplus-father/<repo>`. Revert that caller afterwards.
+   `ci-check.yml` calls `hugobook-build-deploy.yml@v1` internally, so a PR gate
+   only sees a HugoBook change after `v1` moves.
+2. **Move `v1` only to commits that have actually run green.**
+3. **Rollback** if `v1` is broken in production:
    ```bash
-   # Pick one Astro pilot repo
-   gh workflow run deploy.yml --repo nplus-father/<sandbox-repo> \
-     --ref main --raw-field workflow_ref=main
-   gh run watch --repo nplus-father/<sandbox-repo>
-   ```
-   Only after that succeeds → move `v1`.
-
-2. **Move `v1` only to commits that have actually run green** on a real consumer.
-   Don't tag-and-pray.
-
-3. **Rollback procedure** if you discover `v1` is broken in production:
-   ```bash
-   # Find the last known-good commit
    git log v1 --oneline -10
-
-   # Reset v1 to it
    git tag -fa v1 <good-sha> -m "rollback v1 to <good-sha>"
    git push -f origin v1
    ```
-   Daily-cron consumers will pick up the rollback within 24h; push consumers
-   need to push (or workflow_dispatch) once.
-
-4. **Breaking changes go to `v2`**, never to `v1`. Add a new file
-   (e.g. `astro-build-deploy-v2.yml`) or bump in-place but with a new major tag,
-   and migrate consumers one at a time.
-
-5. **List of `@v1` consumers** (alert these if you have to roll back):
-   - `nplus-father/nplus-father.github.io` (portal, `astro-portal-build-deploy`)
-   - `Andrewnplus/andrewnplus.github.io` (`astro-build-deploy`)
-   - `Andrewnplus/outside-the-walls` (`astro-build-deploy`)
-   - all `nplus-father/<book>` repos with HugoBook (`hugobook-build-deploy`)
+   Callers pick it up on their next run. A single repo can opt out by pinning
+   `@<good-sha>` in its own caller.
+4. **Breaking changes** (removing or renaming an input a caller still passes,
+   changing required permissions) need a new major tag, never `v1`. Removing an
+   input nobody passes is fine on `v1` — check with
+   `gh search code '<input>:' --owner nplus-father` first.
 
 ## Inputs
 
-### `hugobook-build-deploy.yml` (Hugo books)
+### `hugobook-build-deploy.yml`
 
 | Input | Default | When to override |
 |---|---|---|
-| `hugo-version` | `0.168.0` | Book needs a newer/older Hugo. |
-| `java-version` | `25` | Book's Gradle needs a specific JDK. |
+| `hugo-version` | `0.168.0` | Never in callers; Renovate bumps the default here. |
+| `java-version` | `25` | Book's Gradle wrapper too old for Java 25 → `'21'`. |
 | `base-url-prefix` | `https://nplus.wiki` | Publishing to a different domain. |
 | `run-spotless` | `true` | Disable while fixing formatting. |
-| `deploy-mode` | `pages-artifact` | Set `gh-pages-branch` for legacy repos. |
-| `deploy` | `true` | Set `false` for a build-only gate (e.g. Renovate PR check): builds but skips upload + deploy. |
+| `deploy` | `true` | `false` = build-only gate (what `ci-check.yml` does). |
+| `runner-labels` | auto | JSON array to force a runner pool. |
 
 > [!IMPORTANT]
 >
@@ -99,52 +91,33 @@ but not dangerous:
 > pinned theme version` 會直接 fail。釘了版本的站再也拿不到主題更新——新 shortcode
 > 用了會 build 失敗，新站台參數設了也沒人讀。留空即可，Hugo 會在 build 時抓最新 tag。
 
-### `astro-build-deploy.yml` (Astro sites)
+### `astro-build-deploy.yml` / `astro-ci-check.yml`
 
 | Input | Default | When to override |
 |---|---|---|
-| `node-version` | `22` | Newer Node release. |
-| `run-lint` | `true` | Disable while fixing lint errors. |
-| `run-format-check` | `true` | Disable while fixing format errors. |
+| `node-version` | `24` | Site pinned to another Node major. |
+| `run-lint` | `true` | `false` when `package.json` has no `lint` script. |
+| `run-format-check` | `true` | `false` when `package.json` has no `format:check` script. |
+| `runner-labels` | auto | `'["ubuntu-latest"]'` for repos owned by `Andrewnplus` (org runners serve org repos only). |
 
-### `astro-ci-check.yml` (Astro PR check)
+`astro-portal-build-deploy.yml` takes `node-version`, `run-lint`, `run-test`,
+`runner-labels`, and the optional secrets documented at the top of the file.
 
-| Input | Default | When to override |
-|---|---|---|
-| `node-version` | `22` | Newer Node release. |
+## Runners
 
-## Deploy modes (HugoBook)
+`runner-labels` left empty means: **private caller → self-hosted pool**
+(`self-hosted, linux, hugobook`), **public caller → `ubuntu-latest`**. This is a
+security boundary — a fork PR against a public repo must never reach the
+self-hosted host — so it is decided in the workflow, not by each caller.
 
-- **`pages-artifact`** (default, recommended): uses `actions/deploy-pages@v4`. Requires the repo's **Settings → Pages → Source = "GitHub Actions"**.
-- **`gh-pages-branch`** (legacy): pushes built site to `gh-pages` branch via `peaceiris/actions-gh-pages`. Use during transition.
+Runner host setup, image upgrades and troubleshooting live in
+`nplus-infra/runners/README.md`.
 
-## Astro setup
+## Troubleshooting
 
-Astro repos use Pages-artifact only. To onboard a new Astro repo:
-
-1. Copy template files from `templates/astro/` into the repo:
-   ```
-   .github/workflows/deploy.yml      ← templates/astro/caller-deploy.yml
-   .github/workflows/ci-check.yml    ← templates/astro/caller-ci-check.yml
-   .prettierrc.json
-   .prettierignore
-   .gitignore                         (merge with existing if any)
-   eslint.config.mjs
-   tsconfig.json                      (merge or replace)
-   .github/renovate.json              ← templates/astro/renovate.json
-   ```
-2. In repo Settings → Pages → Source: pick **"GitHub Actions"**.
-3. In repo Settings → Actions → General → Access: set **"Accessible from repositories owned by the 'nplus-father' organization"** (so the reusable workflow can be invoked).
-4. Add a `public/CNAME` if using a custom domain.
-
-## Requirements on caller repos
-
-- Must be under `nplus-father` or have the workflow access granted (Settings → Actions → General → Access).
-- HugoBook structure: `site/` as Hugo root, `gradlew` wrapper at root, optional `site/go.sum`.
-- Astro structure: `package.json` at root with `lint`, `format:check`, `build` scripts; output in `dist/`.
-
-## Self-hosted runner
-
-The HugoBook build job runs on runners labelled `self-hosted, linux, hugobook`.
-The Astro build job runs on `ubuntu-latest` (GitHub-hosted; no runner needed).
-See `docs/MIGRATION.md` for runner ops.
+| Symptom | Fix |
+|---|---|
+| *"called workflow is not accessible"* | This repo's Actions access setting, see Onboarding. |
+| `HTTP 403: Get Pages site failed` | Caller repo's Pages source is still "Deploy from a branch" → set it to GitHub Actions. |
+| Spotless: *"Unsupported class file major version"* | Book's Gradle wrapper predates Java 25: bump it to 8.13+, or set `java-version: '21'`. |
+| Build job stays *Queued* | Runner offline or its runner group excludes the repo — see `nplus-infra/runners/README.md`. |
