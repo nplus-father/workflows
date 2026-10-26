@@ -37,7 +37,7 @@
       "enabled": false
     },
     {
-      "description": "Hugo is exempt from the major-only policy: it never leaves 0.x, so EVERY release is a minor and the rule above would silence it forever. Placed after that rule so this re-enable wins. Safe to automerge because the version now lives in exactly one place — the hugo-version default below. The runner image deliberately does not bake Hugo (see gh-runner/Dockerfile.runner); actions-hugo installs it per job, so there is nothing to keep in sync and the 'Verify Hugo version' guard cannot drift.",
+      "description": "Hugo is exempt from the major-only policy: it never leaves 0.x, so EVERY release is a minor and the rule above would silence it forever. Placed after that rule so this re-enable wins. Safe to automerge because the version now lives in exactly one place — the hugo-version default below. The runner image deliberately does not bake Hugo; the workflow's Setup Hugo step installs each version once into the runner tool cache, so there is nothing to keep in sync and the 'Verify Hugo version' guard cannot drift.",
       "matchPackageNames": ["gohugoio/hugo"],
       "matchUpdateTypes": ["minor", "patch"],
       "enabled": true,
